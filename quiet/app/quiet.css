@@ -1,0 +1,101 @@
+/* Kept to features old TV browsers support (Tizen 5 = Chromium 63):
+   no flex gap, no clamp(), no inset, no backdrop blur. */
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #111;
+  color: #fff;
+  font-family: "SamsungOne", "Helvetica Neue", Roboto, Arial, sans-serif;
+  font-weight: 300;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+img.art {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 2.5s ease;
+}
+img.art.on { opacity: 1; }
+
+#scrim {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #000;
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+body.glance #scrim, body.play #scrim { opacity: .55; }
+
+/* Art mode: the time only, small, in a corner. */
+#whisper {
+  position: absolute;
+  left: 3vw; bottom: 3vw;
+  font-size: 2vw;
+  letter-spacing: .04em;
+  opacity: .7;
+  text-shadow: 0 0 1.2vw rgba(0, 0, 0, .55);
+  transition: opacity .6s ease;
+}
+body.glance #whisper, body.play #whisper, body.nowhisper #whisper { opacity: 0; }
+
+/* Glance mode: time, date, at most three lines. */
+#glance {
+  position: absolute;
+  left: 8vw; right: 8vw; top: 50%;
+  -webkit-transform: translateY(-50%);
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+body.glance #glance { opacity: 1; }
+body.play #glance { opacity: .35; }
+
+#time { font-size: 11vw; line-height: 1; font-weight: 200; letter-spacing: -.02em; }
+#date { font-size: 2.2vw; margin-top: 1vw; opacity: .8; }
+
+#alert {
+  font-size: 2.6vw;
+  margin-top: 3vw;
+  font-weight: 400;
+}
+#alert:empty { display: none; }
+
+#lines { list-style: none; margin: 3vw 0 0; padding: 0; }
+#lines li { font-size: 2.2vw; margin-top: 1.1vw; }
+#lines .label {
+  display: inline-block;
+  width: 11vw;
+  font-size: 1.1vw;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  opacity: .6;
+  vertical-align: middle;
+}
+
+/* Play mode: app names, text only. */
+#dock {
+  position: absolute;
+  left: 8vw; right: 8vw; bottom: 7vw;
+  list-style: none; margin: 0; padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease;
+}
+body.play #dock { opacity: 1; pointer-events: auto; }
+#dock li {
+  display: inline-block;
+  margin-right: 3.5vw;
+  padding-bottom: .5vw;
+  font-size: 2.6vw;
+  opacity: .5;
+  border-bottom: .15vw solid transparent;
+  transition: opacity .2s ease, border-color .2s ease;
+}
+#dock li.focus { opacity: 1; border-bottom-color: #fff; }

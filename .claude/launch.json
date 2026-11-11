@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quiet",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["quiet/server.py"],
+      "port": 4796
+    }
+  ]
+}

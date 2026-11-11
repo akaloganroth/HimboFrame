@@ -1,0 +1,8 @@
+{
+  "lines": [
+    { "label": "Weather", "text": "52° and clear, rain after 4" },
+    { "label": "Next", "text": "Sample event at 2:30" },
+    { "label": "Home", "text": "All doors locked" }
+  ],
+  "alert": ""
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+  <rect width="1920" height="1080" fill="#3b4a45"/>
+  <g filter="url(#soft)">
+    <rect x="260" y="150" width="1400" height="330" fill="#8fa58f"/>
+    <rect x="260" y="530" width="1400" height="170" fill="#d8c9a3"/>
+    <rect x="260" y="750" width="1400" height="190" fill="#7a5c4a"/>
+  </g>
+</svg>

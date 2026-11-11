@@ -1,0 +1,35 @@
+name: Quiet Screens
+version: "0.1.0"
+slug: quiet
+description: Home screens that look like art until you need them.
+arch:
+  - aarch64
+  - amd64
+init: false
+homeassistant_api: true
+ports:
+  4796/tcp: 4796
+ports_description:
+  4796/tcp: The screen. Open http://<home-assistant-address>:4796/
+webui: http://[HOST]:[PORT:4796]/
+
+# At most three lines are shown; extras are ignored. Each template is ordinary
+# Home Assistant templating. A line that renders empty or fails is left out.
+# These defaults use whatever weather, calendar and lock entities exist.
+options:
+  lines:
+    - label: Weather
+      template: >-
+        {% set w = states.weather | first %}{{ w.attributes.temperature | round }}° {{ w.state | replace('-', ' ') }}
+    - label: Next
+      template: >-
+        {% set c = states.calendar | selectattr('attributes.start_time', 'defined') | sort(attribute='attributes.start_time') | first %}{{ c.attributes.message }}, {{ as_timestamp(c.attributes.start_time) | timestamp_custom('%a %-I:%M') }}
+    - label: Home
+      template: >-
+        {% set n = states.lock | selectattr('state', 'eq', 'unlocked') | list | count %}{{ 'All locked' if n == 0 else n ~ ' unlocked' }}
+  alert: ""
+schema:
+  lines:
+    - label: str
+      template: str
+  alert: str?
