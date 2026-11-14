@@ -3,3 +3,4 @@ __pycache__/
 tv/build/
 tv/frame/.manifest.tmp
 tv/frame/*signature*.xml
+mac/sources/quiet-sources

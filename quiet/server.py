@@ -39,9 +39,11 @@ if not os.access(DATA, os.W_OK):
     DATA = tempfile.gettempdir()
 PUSHED = os.path.join(DATA, "kindle.png")
 BUTTONS = os.path.join(DATA, "kindle-buttons.json")
+MAC_REFRESH_SECONDS = 15     # how often the Kindle asks while the Mac is awake
 TAP_WAIT_SECONDS = 20        # how long the Mac's request for taps is held open
 TAP_KEEP_SECONDS = 30        # an uncollected tap older than this is dropped
 _taps = []
+_screen = {}                 # the Kindle's width and height, as it last reported them
 _taps_ready = threading.Condition()
 FALLBACK = os.path.join(ROOT, "art", "ink.png")
 FRESH_SECONDS = 120          # a Mac picture older than this means the Mac is asleep
@@ -91,6 +93,8 @@ def trmnl_screen():
             with urllib.request.urlopen(request, timeout=8) as response:
                 data = json.load(response)
             _trmnl["data"] = data if data.get("image_url") else None
+            if not _trmnl["data"]:   # TRMNL answered, but not with a screen
+                print("trmnl failed:", json.dumps(data)[:200], flush=True)
         except Exception as error:
             print("trmnl failed:", error, flush=True)
             _trmnl["data"] = None
@@ -104,7 +108,7 @@ def display(host):
         with open(PUSHED, "rb") as handle:
             name = hashlib.sha1(handle.read()).hexdigest()[:16]
         return {"status": 0, "image_url": "http://%s/kindle.png?v=%s" % (host, name),
-                "filename": "mac-" + name, "refresh_rate": 60, "buttons": buttons()}
+                "filename": "mac-" + name, "refresh_rate": MAC_REFRESH_SECONDS, "buttons": buttons()}
     screen = trmnl_screen()
     if screen:
         return {"status": 0, "image_url": screen["image_url"],
@@ -189,11 +193,15 @@ class Handler(SimpleHTTPRequestHandler):
         with open(BUTTONS, "w") as handle:
             json.dump(drawn if isinstance(drawn, list) else [], handle)
         os.replace(PUSHED + ".tmp", PUSHED)
-        self.send_bytes(200, b'{"ok": true}')
+        self.send_bytes(200, json.dumps({"ok": True, "screen": _screen}).encode())
 
     def do_GET(self):
         path = self.path.split("?")[0]
         if path == "/api/display":
+            try:
+                _screen.update(width=int(self.headers["png-width"]), height=int(self.headers["png-height"]))
+            except (KeyError, TypeError, ValueError):
+                pass
             host = self.headers.get("Host") or "localhost:%d" % PORT
             return self.send_bytes(200, json.dumps(display(host)).encode())
         if path == "/kindle/taps":

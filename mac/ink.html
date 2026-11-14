@@ -7,8 +7,15 @@
   /* E-ink: pure black on white, no greys, no thin hairlines. */
   html, body { margin: 0; background: #fff; color: #000; }
   body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 300; }
-  #page { position: relative; box-sizing: border-box; height: 100vh; padding: 6vw 8vw; overflow: hidden; }
+  #page { position: relative; box-sizing: border-box; height: 100vh; padding: 6vmin 8vw; overflow: hidden; }
   svg.art { display: none; width: 100%; height: 42vh; }
+  /* Held sideways: drawing on the left, words on the right. */
+  @media (orientation: landscape) {
+    #page { display: flex; align-items: center; }
+    svg.art, .withbuttons svg.art { width: 44%; height: 70vh; flex: none; }
+    #info { flex: 1; margin: 0 0 8vh 5vw; min-width: 0; }
+    .artonly svg.art { width: 100%; height: 86vh; }
+  }
   svg.art.on { display: block; }
   svg.art * { fill: none; stroke: #000; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
   .artonly svg.art { height: 86vh; }
@@ -16,17 +23,17 @@
   .withbuttons svg.art { height: 33vh; }
   /* Buttons are placed by the numbers the Mac script sends, so the Kindle
      knows exactly where each one is. */
-  .btn { position: absolute; box-sizing: border-box; border: 5px solid #000; border-radius: 2vw;
+  .btn { position: absolute; box-sizing: border-box; border: 5px solid #000; border-radius: 2vmin;
          display: flex; align-items: center; justify-content: center;
-         font-size: 4.2vw; font-weight: 400; white-space: nowrap; overflow: hidden; }
+         font-size: 4.2vmin; font-weight: 400; white-space: nowrap; overflow: hidden; }
   #info { margin-top: 3vh; }
-  #date { font-size: 3.6vw; letter-spacing: .14em; text-transform: uppercase; }
-  #title { font-size: 11vw; line-height: 1.05; font-weight: 200; margin-top: 1.2vh; letter-spacing: -.02em; }
+  #date { font-size: 3.6vmin; letter-spacing: .14em; text-transform: uppercase; }
+  #title { font-size: 11vmin; line-height: 1.05; font-weight: 200; margin-top: 1.2vh; letter-spacing: -.02em; }
   hr { border: 0; border-top: 3px solid #000; margin: 3vh 0 0; }
   #lines { list-style: none; margin: 0; padding: 0; }
   #lines li { margin-top: 2.2vh; }
-  #lines .label { display: block; font-size: 2.6vw; letter-spacing: .18em; text-transform: uppercase; font-weight: 500; }
-  #lines .text { display: block; font-size: 5.2vw; margin-top: .5vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #lines .label { display: block; font-size: 2.6vmin; letter-spacing: .18em; text-transform: uppercase; font-weight: 500; }
+  #lines .text { display: block; font-size: 5.2vmin; margin-top: .5vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -54,6 +61,54 @@
     <path d="M560 110 v24 M548 122 h24 M640 220 v18 M631 229 h18 M500 250 v14 M493 257 h14 M690 90 v14 M683 97 h14"/>
     <path d="M20 420 C 200 396, 380 440, 560 414 S 720 404, 780 418"/>
     <path d="M60 462 H740 M110 498 H690 M170 532 H630 M240 564 H560"/>
+  </svg>
+
+  <!-- mountains -->
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <circle cx="610" cy="130" r="46"/>
+    <path d="M30 480 L230 190 L330 330 L460 110 L770 480"/>
+    <path d="M230 190 L262 262 L226 250 L248 300 M460 110 L500 200 L462 186 L492 250 L448 236"/>
+    <path d="M150 480 L290 330 L420 480 M30 480 H770 M90 516 H710 M170 550 H630"/>
+  </svg>
+  <!-- ripples -->
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <circle cx="400" cy="120" r="30"/>
+    <ellipse cx="400" cy="380" rx="50" ry="14"/><ellipse cx="400" cy="380" rx="120" ry="34"/>
+    <ellipse cx="400" cy="380" rx="200" ry="58"/><ellipse cx="400" cy="380" rx="290" ry="84"/>
+    <ellipse cx="400" cy="380" rx="370" ry="108"/>
+    <path d="M400 150 V330"/>
+  </svg>
+  <!-- plant -->
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <path d="M330 430 H470 L452 560 H348 Z M316 430 H484"/>
+    <path d="M400 430 C 396 340, 404 250, 400 120"/>
+    <path d="M400 360 C 330 350, 280 300, 270 240 C 340 250, 390 300, 400 360 Z"/>
+    <path d="M400 300 C 470 290, 520 240, 530 180 C 460 190, 410 240, 400 300 Z"/>
+    <path d="M400 230 C 350 220, 316 180, 310 130 C 360 140, 394 180, 400 230 Z"/>
+    <path d="M400 170 C 436 160, 462 130, 468 90 C 430 100, 406 130, 400 170 Z"/>
+  </svg>
+  <!-- sailboat -->
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <path d="M400 90 V400 M400 110 L560 380 H400 M388 150 L270 380 H388"/>
+    <path d="M230 410 H590 L540 470 H280 Z"/>
+    <path d="M40 500 C 100 470, 160 530, 220 500 S 340 470, 400 500 S 520 530, 580 500 S 700 470, 760 500"/>
+    <path d="M100 548 C 150 524, 200 572, 250 548 S 350 524, 400 548 S 500 572, 550 548 S 650 524, 700 548"/>
+  </svg>
+  <!-- skyline -->
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <path d="M40 520 H760"/>
+    <rect x="90" y="300" width="110" height="220"/><rect x="220" y="170" width="120" height="350"/>
+    <rect x="360" y="250" width="90" height="270"/><rect x="470" y="110" width="130" height="410"/>
+    <rect x="620" y="340" width="100" height="180"/>
+    <path d="M250 210 H310 M250 250 H310 M250 290 H310 M250 330 H310 M250 370 H310 M250 410 H310 M250 450 H310"/>
+    <path d="M500 150 H570 M500 195 H570 M500 240 H570 M500 285 H570 M500 330 H570 M500 375 H570 M500 420 H570 M500 465 H570"/>
+    <path d="M115 340 H175 M115 390 H175 M115 440 H175 M380 290 H430 M380 340 H430 M380 390 H430 M380 440 H430 M640 380 H700 M640 430 H700 M535 110 V60"/>
+  </svg>
+  <!-- sunrise -->
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <path d="M40 420 H760 M270 420 A 130 130 0 0 1 530 420"/>
+    <path d="M400 250 V150 M312 276 L262 190 M488 276 L538 190 M250 340 L164 290 M550 340 L636 290 M230 420 H130"/>
+    <path d="M120 462 H680 M200 500 H600 M270 536 H530 M570 420 H670"/>
   </svg>
 
   <div id="info">

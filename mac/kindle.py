@@ -29,6 +29,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 EVERY_SECONDS = 30      # how often the picture is re-sent, so it stays fresh
+WATCH_SECONDS = 3       # how often the app in front is checked in between
 MAX_LINES = 3           # the budget; see README
 MAX_BUTTONS = 3
 
@@ -67,24 +68,45 @@ def house_lines(config):
     """The same lines every other screen shows, from the add-on."""
     try:
         with urllib.request.urlopen(config["addon"] + "/state.json", timeout=5) as response:
-            return json.load(response).get("lines") or []
+            state = json.load(response)
+        # Only real data carries a timestamp; the sample file does not.
+        return (state.get("lines") or []) if state.get("updated") else []
     except Exception:
         return []
+
+
+def pick_art(config, now):
+    """Which drawing to show: "daily" (default), "hourly", or a fixed number."""
+    choice = config.get("art", "daily")
+    if isinstance(choice, int):
+        return choice
+    return now.toordinal() * 24 + now.hour if choice == "hourly" else now.toordinal()
 
 
 def gather(config):
     """Returns (what to draw, {button id: command})."""
     app = front_app()
     title, lines, wanted = app, [], []
+    # The first activity that matches wins. An activity matches when its
+    # `when` command succeeds, or when the app in front is in its `apps`
+    # ("*" means any app).
     for activity in config.get("activities", []):
-        if app in activity.get("apps", []):
-            title = activity.get("title") or app
-            for line in activity.get("lines", [])[:MAX_LINES]:
-                text = line["text"] if "text" in line else shell(line["command"])[1]
-                if text:
-                    lines.append({"label": line.get("label", ""), "text": text})
-            wanted += activity.get("buttons", [])
-            break
+        apps = activity.get("apps", [])
+        if "when" in activity:
+            matched = shell(activity["when"])[0]
+        else:
+            matched = app in apps or "*" in apps
+        if not matched:
+            continue
+        title = activity.get("title") or app
+        if "title_command" in activity:
+            title = shell(activity["title_command"])[1] or title
+        for line in activity.get("lines", []):
+            text = line["text"] if "text" in line else shell(line["command"])[1]
+            if text and len(lines) < MAX_LINES:   # empty lines are skipped, so list spares
+                lines.append({"label": line.get("label", ""), "text": text})
+        wanted += activity.get("buttons", [])
+        break
     if not lines:
         lines = house_lines(config)[:MAX_LINES]
 
@@ -103,7 +125,7 @@ def gather(config):
 
     now = datetime.datetime.now()
     data = {
-        "art": now.toordinal(),   # a different drawing each day
+        "art": pick_art(config, now),
         "date": now.strftime("%A, %B ") + str(now.day),
         "title": title,
         "lines": lines,
@@ -143,7 +165,13 @@ def send(png_path, data, config):
         "Content-Type": "image/png",
         "X-Quiet-Buttons": json.dumps(data.get("buttons", [])),
     }))
-    urllib.request.urlopen(request, timeout=10).read()
+    with urllib.request.urlopen(request, timeout=10) as response:
+        screen = json.load(response).get("screen") or {}
+    # True when the Kindle has been turned and the picture must be redrawn.
+    if screen.get("width") and (screen["width"], screen["height"]) != (config["width"], config["height"]):
+        config["width"], config["height"] = screen["width"], screen["height"]
+        return True
+    return False
 
 
 class Taps(threading.Thread):
@@ -194,7 +222,9 @@ def main():
             if data != last or not os.path.exists(png):
                 draw(data, config, png)
                 last = data
-            send(png, data, config)
+            if send(png, data, config):
+                draw(data, config, png)
+                send(png, data, config)
             problem = None
         except Exception as error:
             problem = str(error)
@@ -203,7 +233,12 @@ def main():
             reported = problem
         if once:
             return 1 if problem else 0
-        taps.tapped.wait(EVERY_SECONDS)
+        # Wait for the next resend, but leave early on a tap or a change of app.
+        app, waited = front_app(), 0
+        while waited < EVERY_SECONDS and not taps.tapped.wait(WATCH_SECONDS):
+            waited += WATCH_SECONDS
+            if front_app() != app:
+                break
         taps.tapped.clear()
 
 

@@ -3,6 +3,7 @@
   "token": "",
   "width": 1860,
   "height": 2480,
+  "art": "daily",
 
   "buttons": [
     {
@@ -14,14 +15,30 @@
 
   "activities": [
     {
+      "when": "test -s ~/Library/Caches/quiet/now.txt && find ~/Library/Caches/quiet/now.txt -mmin -5 | grep -q .",
+      "title": "In a meeting",
+      "lines": [
+        { "label": "Now", "command": "cat ~/Library/Caches/quiet/now.txt" },
+        { "label": "Next", "command": "find ~/Library/Caches/quiet/next.txt -mmin -5 -exec cat {} +" },
+        { "label": "Messages", "command": "find ~/Library/Caches/quiet/messages.txt -mmin -5 -exec cat {} +" }
+      ]
+    },
+    {
       "apps": ["Claude", "Code", "Xcode", "Terminal", "Ghostty", "iTerm2"],
       "title": "Building",
       "lines": [
+        { "label": "Next", "command": "find ~/Library/Caches/quiet/next.txt -mmin -5 -exec cat {} +" },
+        { "label": "Messages", "command": "find ~/Library/Caches/quiet/messages.txt -mmin -5 -exec cat {} +" },
         { "label": "Branch", "command": "git -C ~/HimboFrame branch --show-current" },
-        { "label": "Changes", "command": "echo $(git -C ~/HimboFrame status --short | wc -l) files changed" },
-        { "label": "Last commit", "command": "git -C ~/HimboFrame log -1 --format=%s" }
-      ],
-      "buttons": []
+        { "label": "Changes", "command": "echo $(git -C ~/HimboFrame status --short | wc -l) files changed" }
+      ]
+    },
+    {
+      "apps": ["*"],
+      "lines": [
+        { "label": "Next", "command": "find ~/Library/Caches/quiet/next.txt -mmin -5 -exec cat {} +" },
+        { "label": "Messages", "command": "find ~/Library/Caches/quiet/messages.txt -mmin -5 -exec cat {} +" }
+      ]
     }
   ]
 }

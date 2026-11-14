@@ -111,7 +111,13 @@ function Quiet:request(url, body, file)
     local request = {
         url = url,
         method = body and "POST" or "GET",
-        headers = { ["User-Agent"] = "quiet-koreader", ["X-Quiet-Token"] = self.token },
+        headers = {
+            ["User-Agent"] = "quiet-koreader",
+            ["X-Quiet-Token"] = self.token,
+            -- The screen's shape as it is held now, so the picture can match.
+            ["png-width"] = tostring(Screen:getWidth()),
+            ["png-height"] = tostring(Screen:getHeight()),
+        },
         sink = file and socketutil.file_sink(file) or socketutil.table_sink(chunks),
         protocol = "any",
         options = { "all", "no_sslv2", "no_sslv3" },
