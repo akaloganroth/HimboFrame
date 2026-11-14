@@ -13,6 +13,12 @@
   svg.art * { fill: none; stroke: #000; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
   .artonly svg.art { height: 86vh; }
   .artonly #info { display: none; }
+  .withbuttons svg.art { height: 33vh; }
+  /* Buttons are placed by the numbers the Mac script sends, so the Kindle
+     knows exactly where each one is. */
+  .btn { position: absolute; box-sizing: border-box; border: 5px solid #000; border-radius: 2vw;
+         display: flex; align-items: center; justify-content: center;
+         font-size: 4.2vw; font-weight: 400; white-space: nowrap; overflow: hidden; }
   #info { margin-top: 3vh; }
   #date { font-size: 3.6vw; letter-spacing: .14em; text-transform: uppercase; }
   #title { font-size: 11vw; line-height: 1.05; font-weight: 200; margin-top: 1.2vh; letter-spacing: -.02em; }
@@ -72,6 +78,18 @@ var DATA = /*DATA*/{"art": 0, "date": "Saturday, November 14", "title": "Sample"
     var label = document.createElement('span'); label.className = 'label'; label.textContent = lines[i].label || '';
     var text = document.createElement('span'); text.className = 'text'; text.textContent = lines[i].text || '';
     li.appendChild(label); li.appendChild(text); ul.appendChild(li);
+  }
+  var buttons = DATA.buttons || [];
+  if (buttons.length) { document.getElementById('page').className = 'withbuttons'; }
+  for (var b = 0; b < buttons.length; b++) {
+    var div = document.createElement('div');
+    div.className = 'btn';
+    div.textContent = buttons[b].label;
+    div.style.left = buttons[b].x * 100 + '%';
+    div.style.top = buttons[b].y * 100 + '%';
+    div.style.width = buttons[b].w * 100 + '%';
+    div.style.height = buttons[b].h * 100 + '%';
+    document.getElementById('page').appendChild(div);
   }
 })();
 </script>

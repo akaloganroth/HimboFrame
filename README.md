@@ -63,24 +63,31 @@ Install Quiet Screens, start it, and point each screen at
 
 ## Kindle (e-ink)
 
-A jailbroken Kindle running KOReader shows a black-and-white version. It is a
-picture, not a web page: the Kindle only fetches an image, the same way a
-TRMNL device does.
+A jailbroken Kindle running KOReader shows a black-and-white version. The
+Kindle only fetches a picture and reports taps; the add-on and the Mac do the
+rest.
 
 - **Mac awake:** `mac/kindle.py` draws what the Mac is doing and sends it to
   the add-on every 30 seconds. The Kindle shows that.
 - **Mac asleep:** the picture goes stale after two minutes and the add-on hands
   the Kindle your TRMNL device's current screen instead (set `trmnl_api_key` in
   the add-on's Configuration tab). With no key it shows a line drawing.
+- **Buttons:** up to three across the bottom. A tap goes Kindle, add-on, Mac;
+  the Mac runs that button's command and redraws.
 
-What the Mac screen says is set in `mac/kindle.json`: a list of activities,
-each naming the apps it applies to, a title, and up to three lines. A line is
-either fixed `text` or a shell `command` whose first line of output is shown.
-Apps with no activity show the same three lines as every other screen.
+What the Mac screen says is set in `mac/kindle.json`:
 
-On the Kindle, install TRMNL's KOReader plugin
-(github.com/usetrmnl/trmnl-koreader) and set its Base URL to
-`http://<home-assistant-address>:4796`. The API key can be anything.
+- `activities`: each names the apps it applies to, a title, up to three lines,
+  and optional buttons. A line is fixed `text` or a shell `command` whose first
+  line of output is shown. Apps with no activity show the house lines.
+- `buttons` (top level): shown on every Mac screen.
+- A button has a `label`, a `command` to run when tapped, and an optional
+  `show_if` command; the button appears only when that succeeds.
+
+On the Kindle, copy `kindle/quiet.koplugin` into KOReader's `plugins` folder,
+check the address in its `server.txt`, restart KOReader, and start it from
+Tools, Quiet Screens. Hold anywhere on the screen to leave. The last TRMNL
+screen is kept at `koreader/quiet/sleep.png` for use as a sleep screen.
 
 To run the Mac side at login:
 

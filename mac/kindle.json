@@ -3,6 +3,15 @@
   "token": "",
   "width": 1860,
   "height": 2480,
+
+  "buttons": [
+    {
+      "label": "Start timer",
+      "show_if": "curl -sf -m 3 http://localhost:8000/api/v1/sessions/active | grep -qx null",
+      "command": "curl -sf -m 5 -X POST -H 'Content-Type: application/json' -d '{}' http://localhost:8000/api/v1/sessions/start"
+    }
+  ],
+
   "activities": [
     {
       "apps": ["Claude", "Code", "Xcode", "Terminal", "Ghostty", "iTerm2"],
@@ -11,7 +20,8 @@
         { "label": "Branch", "command": "git -C ~/HimboFrame branch --show-current" },
         { "label": "Changes", "command": "echo $(git -C ~/HimboFrame status --short | wc -l) files changed" },
         { "label": "Last commit", "command": "git -C ~/HimboFrame log -1 --format=%s" }
-      ]
+      ],
+      "buttons": []
     }
   ]
 }

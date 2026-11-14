@@ -4,14 +4,17 @@ Inside the add-on, Home Assistant supplies SUPERVISOR_TOKEN and the lines come
 from the add-on's options. Without the token (running on a laptop) it serves
 the sample app/state.json instead. Standard library only.
 
-It also feeds an e-ink screen (a Kindle running TRMNL's KOReader plugin). The
-Mac pushes a picture of what it is doing; while that picture is fresh the
-Kindle shows it, and otherwise it shows the TRMNL screen.
+It also feeds an e-ink screen (a Kindle running the Quiet KOReader plugin). The
+Mac pushes a picture of what it is doing, with the positions of any buttons
+drawn on it; while that picture is fresh the Kindle shows it, and otherwise it
+shows the TRMNL screen. Taps on a button come back here and wait for the Mac
+to collect them.
 """
 import hashlib
 import json
 import os
 import tempfile
+import threading
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -35,6 +38,11 @@ DATA = os.environ.get("QUIET_DATA", "/data")
 if not os.access(DATA, os.W_OK):
     DATA = tempfile.gettempdir()
 PUSHED = os.path.join(DATA, "kindle.png")
+BUTTONS = os.path.join(DATA, "kindle-buttons.json")
+TAP_WAIT_SECONDS = 20        # how long the Mac's request for taps is held open
+TAP_KEEP_SECONDS = 30        # an uncollected tap older than this is dropped
+_taps = []
+_taps_ready = threading.Condition()
 FALLBACK = os.path.join(ROOT, "art", "ink.png")
 FRESH_SECONDS = 120          # a Mac picture older than this means the Mac is asleep
 MAX_PUSH_BYTES = 5 * 1024 * 1024
@@ -56,6 +64,19 @@ def mac_is_awake():
         return time.time() - os.path.getmtime(PUSHED) < FRESH_SECONDS
     except OSError:
         return False
+
+
+def buttons():
+    try:
+        with open(BUTTONS) as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return []
+
+
+def allowed(headers):
+    token = options().get("kindle_token")
+    return not token or headers.get("X-Quiet-Token") == token
 
 
 def trmnl_screen():
@@ -83,7 +104,7 @@ def display(host):
         with open(PUSHED, "rb") as handle:
             name = hashlib.sha1(handle.read()).hexdigest()[:16]
         return {"status": 0, "image_url": "http://%s/kindle.png?v=%s" % (host, name),
-                "filename": "mac-" + name, "refresh_rate": 60}
+                "filename": "mac-" + name, "refresh_rate": 60, "buttons": buttons()}
     screen = trmnl_screen()
     if screen:
         return {"status": 0, "image_url": screen["image_url"],
@@ -135,12 +156,25 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         """The Mac sends its picture here: a PNG as the request body."""
-        if self.path.split("?")[0] != "/kindle/push":
+        path = self.path.split("?")[0]
+        if path not in ("/kindle/push", "/kindle/tap"):
             return self.send_bytes(404, b"{}")
-        token = options().get("kindle_token")
-        if token and self.headers.get("X-Quiet-Token") != token:
+        if not allowed(self.headers):
             return self.send_bytes(403, b'{"error": "wrong token"}')
         length = int(self.headers.get("Content-Length") or 0)
+        if path == "/kindle/tap":
+            # The Kindle says which button was touched. Only buttons that are
+            # on the current picture count.
+            try:
+                tapped = json.loads(self.rfile.read(min(length, 1000)) or b"{}").get("id")
+            except ValueError:
+                tapped = None
+            if not mac_is_awake() or tapped not in [b.get("id") for b in buttons()]:
+                return self.send_bytes(409, b'{"error": "no such button now"}')
+            with _taps_ready:
+                _taps.append({"id": tapped, "at": time.time()})
+                _taps_ready.notify_all()
+            return self.send_bytes(200, b'{"ok": true}')
         if not 0 < length <= MAX_PUSH_BYTES:
             return self.send_bytes(413, b'{"error": "bad size"}')
         body = self.rfile.read(length)
@@ -148,6 +182,12 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_bytes(400, b'{"error": "not a PNG"}')
         with open(PUSHED + ".tmp", "wb") as handle:
             handle.write(body)
+        try:
+            drawn = json.loads(self.headers.get("X-Quiet-Buttons") or "[]")
+        except ValueError:
+            drawn = []
+        with open(BUTTONS, "w") as handle:
+            json.dump(drawn if isinstance(drawn, list) else [], handle)
         os.replace(PUSHED + ".tmp", PUSHED)
         self.send_bytes(200, b'{"ok": true}')
 
@@ -156,6 +196,16 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/display":
             host = self.headers.get("Host") or "localhost:%d" % PORT
             return self.send_bytes(200, json.dumps(display(host)).encode())
+        if path == "/kindle/taps":
+            # The Mac waits here; the answer comes as soon as a button is touched.
+            if not allowed(self.headers):
+                return self.send_bytes(403, b'{"error": "wrong token"}')
+            with _taps_ready:
+                if not _taps:
+                    _taps_ready.wait(TAP_WAIT_SECONDS)
+                recent = [t["id"] for t in _taps if time.time() - t["at"] < TAP_KEEP_SECONDS]
+                del _taps[:]
+            return self.send_bytes(200, json.dumps({"taps": recent}).encode())
         if path == "/kindle.png":
             try:
                 with open(PUSHED if os.path.exists(PUSHED) else FALLBACK, "rb") as handle:
