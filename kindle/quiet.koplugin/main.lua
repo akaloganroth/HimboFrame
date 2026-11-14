@@ -9,7 +9,9 @@ screens do.
 Setup: put the add-on's address in server.txt (one line). If the add-on has a
 kindle_token set, put the same value in token.txt.
 
-Start it from Tools > Quiet Screens. Hold anywhere on the screen to leave.
+Start it from Tools > Quiet Screens > Start. Hold anywhere on the screen to
+leave. "TRMNL as sleep screen" makes the Kindle's sleep screen the latest TRMNL
+picture, which this plugin keeps up to date while it runs.
 
 Written against the same KOReader calls TRMNL's plugin uses
 (github.com/usetrmnl/trmnl-koreader).
@@ -69,8 +71,57 @@ function Quiet:addToMainMenu(menu_items)
     menu_items.quiet = {
         text = _("Quiet Screens"),
         sorting_hint = "tools",
-        callback = function() self:start() end,
+        sub_item_table = {
+            { text = _("Start"), callback = function() self:start() end },
+            {
+                text = _("TRMNL as sleep screen"),
+                checked_func = function() return self:sleepScreenOn() end,
+                callback = function() self:toggleSleepScreen() end,
+            },
+        },
     }
+end
+
+function Quiet:sleepPath()
+    return self.folder .. "/sleep.png"
+end
+
+function Quiet:sleepScreenOn()
+    return G_reader_settings:readSetting("screensaver_type") == "document_cover"
+        and G_reader_settings:readSetting("screensaver_document_cover") == self:sleepPath()
+end
+
+--- Points KOReader's own sleep screen at the saved TRMNL picture, or puts back
+-- whatever was set before.
+function Quiet:toggleSleepScreen()
+    if self:sleepScreenOn() then
+        G_reader_settings:saveSetting("screensaver_type", G_reader_settings:readSetting("quiet_previous_screensaver_type") or "disable")
+        G_reader_settings:saveSetting("screensaver_document_cover", G_reader_settings:readSetting("quiet_previous_screensaver_cover"))
+    else
+        G_reader_settings:saveSetting("quiet_previous_screensaver_type", G_reader_settings:readSetting("screensaver_type"))
+        G_reader_settings:saveSetting("quiet_previous_screensaver_cover", G_reader_settings:readSetting("screensaver_document_cover"))
+        G_reader_settings:saveSetting("screensaver_type", "document_cover")
+        G_reader_settings:saveSetting("screensaver_document_cover", self:sleepPath())
+        -- TRMNL pictures are wide; let KOReader turn them to fill the screen.
+        G_reader_settings:saveSetting("screensaver_rotate_auto_for_best_fit", true)
+        if not lfs.attributes(self:sleepPath()) then
+            UIManager:show(InfoMessage:new { text = _("No TRMNL picture saved yet. Start Quiet Screens once and it will be fetched."), timeout = 4 })
+        end
+    end
+end
+
+--- Keeps the saved TRMNL picture current.
+function Quiet:saveSleepPicture(sleep)
+    if type(sleep) ~= "table" or not sleep.image_url or sleep.filename == self.last_sleep_filename then return end
+    local temp = self:sleepPath() .. ".tmp"
+    local file = io.open(temp, "wb")
+    if not file then return end
+    if self:request(sleep.image_url, nil, file) then
+        os.rename(temp, self:sleepPath())
+        self.last_sleep_filename = sleep.filename
+    else
+        os.remove(temp)
+    end
 end
 
 function Quiet:start()
@@ -162,6 +213,7 @@ function Quiet:fetchNow()
     end
 
     self.buttons = type(response.buttons) == "table" and response.buttons or {}
+    self:saveSleepPicture(response.sleep)
 
     local filename = tostring(response.filename or "screen"):gsub("[^%w%-_]", "_") .. ".png"
     local path = self.folder .. "/" .. filename
@@ -178,14 +230,6 @@ function Quiet:fetchNow()
                 if name:match("%.png$") and name ~= filename and name ~= "sleep.png" then
                     os.remove(self.folder .. "/" .. name)
                 end
-            end
-            -- Keep the last screen that did not come from the Mac (the TRMNL
-            -- screen) at a fixed path, so it can be used as the sleep screen.
-            if not filename:match("^mac%-") then
-                local from, to = io.open(path, "rb"), io.open(self.folder .. "/sleep.png", "wb")
-                if from and to then to:write(from:read("*a")) end
-                if from then from:close() end
-                if to then to:close() end
             end
             self.last_filename = filename
         end

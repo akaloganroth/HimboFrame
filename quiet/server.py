@@ -39,6 +39,7 @@ if not os.access(DATA, os.W_OK):
     DATA = tempfile.gettempdir()
 PUSHED = os.path.join(DATA, "kindle.png")
 BUTTONS = os.path.join(DATA, "kindle-buttons.json")
+TRMNL_PICTURE = os.path.join(DATA, "trmnl.png")
 MAC_REFRESH_SECONDS = 15     # how often the Kindle asks while the Mac is awake
 TAP_WAIT_SECONDS = 20        # how long the Mac's request for taps is held open
 TAP_KEEP_SECONDS = 30        # an uncollected tap older than this is dropped
@@ -81,20 +82,34 @@ def allowed(headers):
     return not token or headers.get("X-Quiet-Token") == token
 
 
+def trmnl_fetch(url, headers=None):
+    # TRMNL's servers refuse Python's default client name, so give our own.
+    request = urllib.request.Request(url, headers=dict(headers or {}, **{"User-Agent": "quiet-screens"}))
+    with urllib.request.urlopen(request, timeout=15) as response:
+        return response.read()
+
+
 def trmnl_screen():
-    """The screen the TRMNL device is showing now, or None. Cached a minute."""
-    key = options().get("trmnl_api_key")
+    """The screen the TRMNL device is showing now, as {"filename": ...}, or
+    None. Checked every four minutes. The picture is copied here, because
+    TRMNL's own link to it stops working after five minutes."""
+    key = (options().get("trmnl_api_key") or "").strip()
     if not key:
         return None
-    if time.time() - _trmnl["at"] > 60:
+    if time.time() - _trmnl["at"] > 240:
         _trmnl["at"] = time.time()
         try:
-            request = urllib.request.Request(TRMNL_API, headers={"access-token": key})
-            with urllib.request.urlopen(request, timeout=8) as response:
-                data = json.load(response)
-            _trmnl["data"] = data if data.get("image_url") else None
-            if not _trmnl["data"]:   # TRMNL answered, but not with a screen
-                print("trmnl failed:", json.dumps(data)[:200], flush=True)
+            data = json.loads(trmnl_fetch(TRMNL_API, {"access-token": key}))
+            if not data.get("image_url"):   # TRMNL answered, but not with a screen
+                raise ValueError(json.dumps(data)[:200])
+            name = data.get("filename") or hashlib.sha1(data["image_url"].encode()).hexdigest()[:16]
+            current = _trmnl["data"] or {}
+            if name != current.get("filename") or not os.path.exists(TRMNL_PICTURE):
+                picture = trmnl_fetch(data["image_url"])
+                with open(TRMNL_PICTURE + ".tmp", "wb") as handle:
+                    handle.write(picture)
+                os.replace(TRMNL_PICTURE + ".tmp", TRMNL_PICTURE)
+            _trmnl["data"] = {"filename": name}
         except Exception as error:
             print("trmnl failed:", error, flush=True)
             _trmnl["data"] = None
@@ -102,7 +117,17 @@ def trmnl_screen():
 
 
 def display(host):
-    """What the e-ink screen should show, in TRMNL's device format."""
+    """What the e-ink screen should show, in TRMNL's device format. It always
+    carries the TRMNL screen too, as `sleep`, for the Kindle's sleep screen."""
+    answer = showing(host)
+    screen = trmnl_screen()
+    if screen:
+        answer["sleep"] = {"image_url": "http://%s/trmnl.png?v=%s" % (host, screen["filename"]),
+                           "filename": screen["filename"]}
+    return answer
+
+
+def showing(host):
     if mac_is_awake():
         # Named by content, so an unchanged picture is not a new screen.
         with open(PUSHED, "rb") as handle:
@@ -111,9 +136,8 @@ def display(host):
                 "filename": "mac-" + name, "refresh_rate": MAC_REFRESH_SECONDS, "buttons": buttons()}
     screen = trmnl_screen()
     if screen:
-        return {"status": 0, "image_url": screen["image_url"],
-                "filename": screen.get("filename") or hashlib.sha1(screen["image_url"].encode()).hexdigest()[:16],
-                "refresh_rate": 300}
+        return {"status": 0, "image_url": "http://%s/trmnl.png?v=%s" % (host, screen["filename"]),
+                "filename": screen["filename"], "refresh_rate": 300}
     return {"status": 0, "image_url": "http://%s/art/ink.png" % host, "filename": "quiet-art", "refresh_rate": 300}
 
 
@@ -214,6 +238,12 @@ class Handler(SimpleHTTPRequestHandler):
                 recent = [t["id"] for t in _taps if time.time() - t["at"] < TAP_KEEP_SECONDS]
                 del _taps[:]
             return self.send_bytes(200, json.dumps({"taps": recent}).encode())
+        if path == "/trmnl.png":
+            try:
+                with open(TRMNL_PICTURE, "rb") as handle:
+                    return self.send_bytes(200, handle.read(), "image/png")
+            except OSError:
+                return self.send_bytes(404, b"{}")
         if path == "/kindle.png":
             try:
                 with open(PUSHED if os.path.exists(PUSHED) else FALLBACK, "rb") as handle:
