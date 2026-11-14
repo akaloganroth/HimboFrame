@@ -1,0 +1,17 @@
+{
+  "addon": "http://192.168.1.92:4796",
+  "token": "",
+  "width": 1860,
+  "height": 2480,
+  "activities": [
+    {
+      "apps": ["Claude", "Code", "Xcode", "Terminal", "Ghostty", "iTerm2"],
+      "title": "Building",
+      "lines": [
+        { "label": "Branch", "command": "git -C ~/HimboFrame branch --show-current" },
+        { "label": "Changes", "command": "echo $(git -C ~/HimboFrame status --short | wc -l) files changed" },
+        { "label": "Last commit", "command": "git -C ~/HimboFrame log -1 --format=%s" }
+      ]
+    }
+  ]
+}

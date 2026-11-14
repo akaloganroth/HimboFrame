@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://himbo.net/quiet" version="0.1.0" viewmodes="maximized">
+    <!-- Keep this id stable: updates and any launch automation depend on it. -->
+    <tizen:application id="Qu1etScrn0.Quiet" package="Qu1etScrn0" required_version="5.0"/>
+    <content src="index.html"/>
+    <name>Quiet</name>
+    <icon src="icon.png"/>
+    <access origin="*" subdomains="true"/>
+    <tizen:allow-navigation>*</tizen:allow-navigation>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+    <tizen:profile name="tv-samsung"/>
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+</widget>

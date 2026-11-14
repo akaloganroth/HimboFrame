@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Quiet</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; }
+  #status { position: absolute; left: 3vw; bottom: 3vw; color: #555; font: 1.4vw sans-serif; }
+</style>
+</head>
+<body>
+<div id="status"></div>
+<script>
+// The whole TV app: wait until the add-on answers, then hand over to it.
+// Everything the screen does lives in the add-on, so this never needs updating.
+(function () {
+  var BASE = 'http://homeassistant.local:4796/';  // the Quiet Screens add-on
+  var LOG = '';                             // set to a URL while debugging
+
+  var tries = 0;
+  function say(message) {
+    document.getElementById('status').textContent = message;
+    if (LOG) { new Image().src = LOG + '?m=' + encodeURIComponent(message) + '&t=' + Date.now(); }
+  }
+  window.onerror = function (message) { say('Error: ' + message); };
+
+  // Which screen this is, for per-screen settings in config.js.
+  var screen = 'tv';
+  try {
+    screen = String(tizen.systeminfo.getCapability('http://tizen.org/system/model_name')).toLowerCase();
+  } catch (e) {}
+
+  function attempt() {
+    tries++;
+    say('Looking for Quiet Screens at ' + BASE + ' (try ' + tries + ')');
+    var probe = new Image();
+    probe.onload = function () {
+      say('Found it. Opening as "' + screen + '"');
+      location.replace(BASE + '?screen=' + encodeURIComponent(screen));
+    };
+    probe.onerror = function () {
+      say('No answer from ' + BASE + ' (try ' + tries + '). Retrying.');
+      setTimeout(attempt, 10000);
+    };
+    probe.src = BASE + 'art/dune.svg?t=' + Date.now();
+  }
+  attempt();
+})();
+</script>
+</body>
+</html>

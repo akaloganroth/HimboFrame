@@ -3,9 +3,15 @@
 Inside the add-on, Home Assistant supplies SUPERVISOR_TOKEN and the lines come
 from the add-on's options. Without the token (running on a laptop) it serves
 the sample app/state.json instead. Standard library only.
+
+It also feeds an e-ink screen (a Kindle running TRMNL's KOReader plugin). The
+Mac pushes a picture of what it is doing; while that picture is fresh the
+Kindle shows it, and otherwise it shows the TRMNL screen.
 """
+import hashlib
 import json
 import os
+import tempfile
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -23,6 +29,67 @@ CACHE_SECONDS = 30
 EMPTY = {"", "unknown", "unavailable", "none"}
 
 _cache = {"at": 0.0, "body": b"{}"}
+
+# ---- e-ink screen
+DATA = os.environ.get("QUIET_DATA", "/data")
+if not os.access(DATA, os.W_OK):
+    DATA = tempfile.gettempdir()
+PUSHED = os.path.join(DATA, "kindle.png")
+FALLBACK = os.path.join(ROOT, "art", "ink.png")
+FRESH_SECONDS = 120          # a Mac picture older than this means the Mac is asleep
+MAX_PUSH_BYTES = 5 * 1024 * 1024
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+TRMNL_API = os.environ.get("QUIET_TRMNL_API", "https://trmnl.com/api/display/current")
+_trmnl = {"at": 0.0, "data": None}
+
+
+def options():
+    try:
+        with open(OPTIONS) as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return {}
+
+
+def mac_is_awake():
+    try:
+        return time.time() - os.path.getmtime(PUSHED) < FRESH_SECONDS
+    except OSError:
+        return False
+
+
+def trmnl_screen():
+    """The screen the TRMNL device is showing now, or None. Cached a minute."""
+    key = options().get("trmnl_api_key")
+    if not key:
+        return None
+    if time.time() - _trmnl["at"] > 60:
+        _trmnl["at"] = time.time()
+        try:
+            request = urllib.request.Request(TRMNL_API, headers={"access-token": key})
+            with urllib.request.urlopen(request, timeout=8) as response:
+                data = json.load(response)
+            _trmnl["data"] = data if data.get("image_url") else None
+        except Exception as error:
+            print("trmnl failed:", error, flush=True)
+            _trmnl["data"] = None
+    return _trmnl["data"]
+
+
+def display(host):
+    """What the e-ink screen should show, in TRMNL's device format."""
+    if mac_is_awake():
+        # Named by content, so an unchanged picture is not a new screen.
+        with open(PUSHED, "rb") as handle:
+            name = hashlib.sha1(handle.read()).hexdigest()[:16]
+        return {"status": 0, "image_url": "http://%s/kindle.png?v=%s" % (host, name),
+                "filename": "mac-" + name, "refresh_rate": 60}
+    screen = trmnl_screen()
+    if screen:
+        return {"status": 0, "image_url": screen["image_url"],
+                "filename": screen.get("filename") or hashlib.sha1(screen["image_url"].encode()).hexdigest()[:16],
+                "refresh_rate": 300}
+    return {"status": 0, "image_url": "http://%s/art/ink.png" % host, "filename": "quiet-art", "refresh_rate": 300}
 
 
 def render(template):
@@ -59,8 +126,43 @@ def build_state():
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def send_bytes(self, status, body, content_type="application/json"):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        """The Mac sends its picture here: a PNG as the request body."""
+        if self.path.split("?")[0] != "/kindle/push":
+            return self.send_bytes(404, b"{}")
+        token = options().get("kindle_token")
+        if token and self.headers.get("X-Quiet-Token") != token:
+            return self.send_bytes(403, b'{"error": "wrong token"}')
+        length = int(self.headers.get("Content-Length") or 0)
+        if not 0 < length <= MAX_PUSH_BYTES:
+            return self.send_bytes(413, b'{"error": "bad size"}')
+        body = self.rfile.read(length)
+        if not body.startswith(PNG_MAGIC):
+            return self.send_bytes(400, b'{"error": "not a PNG"}')
+        with open(PUSHED + ".tmp", "wb") as handle:
+            handle.write(body)
+        os.replace(PUSHED + ".tmp", PUSHED)
+        self.send_bytes(200, b'{"ok": true}')
+
     def do_GET(self):
-        if TOKEN and self.path.split("?")[0] == "/state.json":
+        path = self.path.split("?")[0]
+        if path == "/api/display":
+            host = self.headers.get("Host") or "localhost:%d" % PORT
+            return self.send_bytes(200, json.dumps(display(host)).encode())
+        if path == "/kindle.png":
+            try:
+                with open(PUSHED if os.path.exists(PUSHED) else FALLBACK, "rb") as handle:
+                    return self.send_bytes(200, handle.read(), "image/png")
+            except OSError:
+                return self.send_bytes(404, b"{}")
+        if TOKEN and path == "/state.json":
             if time.time() - _cache["at"] > CACHE_SECONDS:
                 _cache["body"] = json.dumps(build_state()).encode()
                 _cache["at"] = time.time()

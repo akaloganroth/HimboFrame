@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Quiet ink</title>
+<style>
+  /* E-ink: pure black on white, no greys, no thin hairlines. */
+  html, body { margin: 0; background: #fff; color: #000; }
+  body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 300; }
+  #page { position: relative; box-sizing: border-box; height: 100vh; padding: 6vw 8vw; overflow: hidden; }
+  svg.art { display: none; width: 100%; height: 42vh; }
+  svg.art.on { display: block; }
+  svg.art * { fill: none; stroke: #000; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .artonly svg.art { height: 86vh; }
+  .artonly #info { display: none; }
+  #info { margin-top: 3vh; }
+  #date { font-size: 3.6vw; letter-spacing: .14em; text-transform: uppercase; }
+  #title { font-size: 11vw; line-height: 1.05; font-weight: 200; margin-top: 1.2vh; letter-spacing: -.02em; }
+  hr { border: 0; border-top: 3px solid #000; margin: 3vh 0 0; }
+  #lines { list-style: none; margin: 0; padding: 0; }
+  #lines li { margin-top: 2.2vh; }
+  #lines .label { display: block; font-size: 2.6vw; letter-spacing: .18em; text-transform: uppercase; font-weight: 500; }
+  #lines .text { display: block; font-size: 5.2vw; margin-top: .5vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+<div id="page">
+  <!-- Three line drawings; one is shown at a time. -->
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <circle cx="570" cy="170" r="34"/><circle cx="570" cy="170" r="56"/><circle cx="570" cy="170" r="80"/>
+    <path d="M20 330 C 150 280, 290 370, 420 320 S 680 280, 780 325"/>
+    <path d="M20 372 C 170 322, 300 412, 450 362 S 690 330, 780 366"/>
+    <path d="M20 414 C 140 374, 330 452, 480 404 S 700 374, 780 408"/>
+    <path d="M20 456 C 190 418, 320 494, 500 446 S 710 420, 780 450"/>
+    <path d="M20 498 C 160 464, 350 532, 520 488 S 720 466, 780 492"/>
+    <path d="M20 540 C 200 512, 340 568, 540 530 S 730 512, 780 534"/>
+  </svg>
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <rect x="120" y="60" width="560" height="190" rx="6"/>
+    <path d="M150 100 H650 M150 130 H650 M150 160 H650 M150 190 H650 M150 220 H650"/>
+    <rect x="120" y="280" width="560" height="100" rx="6"/>
+    <path d="M160 300 V360 M200 300 V360 M240 300 V360 M280 300 V360 M320 300 V360 M360 300 V360 M400 300 V360 M440 300 V360 M480 300 V360 M520 300 V360 M560 300 V360 M600 300 V360 M640 300 V360"/>
+    <rect x="120" y="410" width="560" height="130" rx="6"/>
+    <path d="M150 510 L250 440 M250 510 L350 440 M350 510 L450 440 M450 510 L550 440 M550 510 L650 440"/>
+  </svg>
+  <svg class="art" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+    <path d="M330 90 A 110 110 0 1 0 330 310 A 84 84 0 1 1 330 90 Z"/>
+    <path d="M560 110 v24 M548 122 h24 M640 220 v18 M631 229 h18 M500 250 v14 M493 257 h14 M690 90 v14 M683 97 h14"/>
+    <path d="M20 420 C 200 396, 380 440, 560 414 S 720 404, 780 418"/>
+    <path d="M60 462 H740 M110 498 H690 M170 532 H630 M240 564 H560"/>
+  </svg>
+
+  <div id="info">
+    <div id="date"></div>
+    <div id="title"></div>
+    <hr>
+    <ul id="lines"></ul>
+  </div>
+</div>
+<script>
+var DATA = /*DATA*/{"art": 0, "date": "Saturday, November 14", "title": "Sample", "lines": [{"label": "Weather", "text": "52° and clear"}]}/*END*/;
+(function () {
+  var art = document.querySelectorAll('svg.art');
+  art[(DATA.art || 0) % art.length].className.baseVal = 'art on';
+  if (DATA.artOnly) { document.getElementById('page').className = 'artonly'; return; }
+  document.getElementById('date').textContent = DATA.date || '';
+  document.getElementById('title').textContent = DATA.title || '';
+  var ul = document.getElementById('lines');
+  var lines = (DATA.lines || []).slice(0, 3);   // the same three-line budget as every screen
+  for (var i = 0; i < lines.length; i++) {
+    var li = document.createElement('li');
+    var label = document.createElement('span'); label.className = 'label'; label.textContent = lines[i].label || '';
+    var text = document.createElement('span'); text.className = 'text'; text.textContent = lines[i].text || '';
+    li.appendChild(label); li.appendChild(text); ul.appendChild(li);
+  }
+})();
+</script>
+</body>
+</html>

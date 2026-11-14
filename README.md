@@ -61,6 +61,33 @@ Either:
 Install Quiet Screens, start it, and point each screen at
 `http://<home-assistant-address>:4796/?screen=<name>`.
 
+## Kindle (e-ink)
+
+A jailbroken Kindle running KOReader shows a black-and-white version. It is a
+picture, not a web page: the Kindle only fetches an image, the same way a
+TRMNL device does.
+
+- **Mac awake:** `mac/kindle.py` draws what the Mac is doing and sends it to
+  the add-on every 30 seconds. The Kindle shows that.
+- **Mac asleep:** the picture goes stale after two minutes and the add-on hands
+  the Kindle your TRMNL device's current screen instead (set `trmnl_api_key` in
+  the add-on's Configuration tab). With no key it shows a line drawing.
+
+What the Mac screen says is set in `mac/kindle.json`: a list of activities,
+each naming the apps it applies to, a title, and up to three lines. A line is
+either fixed `text` or a shell `command` whose first line of output is shown.
+Apps with no activity show the same three lines as every other screen.
+
+On the Kindle, install TRMNL's KOReader plugin
+(github.com/usetrmnl/trmnl-koreader) and set its Base URL to
+`http://<home-assistant-address>:4796`. The API key can be anything.
+
+To run the Mac side at login:
+
+```bash
+cp mac/net.himbo.quiet-kindle.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/net.himbo.quiet-kindle.plist
+```
+
 ## Running it on a laptop
 
 ```bash

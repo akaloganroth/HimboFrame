@@ -1,5 +1,5 @@
 name: Quiet Screens
-version: "0.1.0"
+version: "0.2.0"
 slug: quiet
 description: Home screens that look like art until you need them.
 arch:
@@ -28,8 +28,14 @@ options:
       template: >-
         {% set n = states.lock | selectattr('state', 'eq', 'unlocked') | list | count %}{{ 'All locked' if n == 0 else n ~ ' unlocked' }}
   alert: ""
+  # E-ink screen (optional). trmnl_api_key is your TRMNL device's API key, used
+  # to mirror its current screen. kindle_token, if set, must be sent by the Mac.
+  trmnl_api_key: ""
+  kindle_token: ""
 schema:
   lines:
     - label: str
       template: str
   alert: str?
+  trmnl_api_key: password?
+  kindle_token: password?
