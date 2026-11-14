@@ -40,6 +40,7 @@ if not os.access(DATA, os.W_OK):
 PUSHED = os.path.join(DATA, "kindle.png")
 BUTTONS = os.path.join(DATA, "kindle-buttons.json")
 TRMNL_PICTURE = os.path.join(DATA, "trmnl.png")
+SHARE = "/share/quiet"       # Home Assistant's shared folder, for other uses of the picture
 MAC_REFRESH_SECONDS = 15     # how often the Kindle asks while the Mac is awake
 TAP_WAIT_SECONDS = 20        # how long the Mac's request for taps is held open
 TAP_KEEP_SECONDS = 30        # an uncollected tap older than this is dropped
@@ -109,6 +110,11 @@ def trmnl_screen():
                 with open(TRMNL_PICTURE + ".tmp", "wb") as handle:
                     handle.write(picture)
                 os.replace(TRMNL_PICTURE + ".tmp", TRMNL_PICTURE)
+                if os.path.isdir("/share"):
+                    os.makedirs(SHARE, exist_ok=True)
+                    with open(os.path.join(SHARE, "trmnl.png.tmp"), "wb") as handle:
+                        handle.write(picture)
+                    os.replace(os.path.join(SHARE, "trmnl.png.tmp"), os.path.join(SHARE, "trmnl.png"))
             _trmnl["data"] = {"filename": name}
         except Exception as error:
             print("trmnl failed:", error, flush=True)
@@ -239,6 +245,7 @@ class Handler(SimpleHTTPRequestHandler):
                 del _taps[:]
             return self.send_bytes(200, json.dumps({"taps": recent}).encode())
         if path == "/trmnl.png":
+            trmnl_screen()   # make sure the copy is current, even if no Kindle is asking
             try:
                 with open(TRMNL_PICTURE, "rb") as handle:
                     return self.send_bytes(200, handle.read(), "image/png")

@@ -1,5 +1,5 @@
 name: Quiet Screens
-version: "0.3.1"
+version: "0.3.2"
 slug: quiet
 description: Home screens that look like art until you need them.
 arch:
@@ -7,6 +7,8 @@ arch:
   - amd64
 init: false
 homeassistant_api: true
+map:
+  - share:rw
 ports:
   4796/tcp: 4796
 ports_description:
