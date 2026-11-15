@@ -1,8 +1,8 @@
 {
   "addon": "http://192.168.1.92:4796",
   "token": "",
-  "width": 1860,
-  "height": 2480,
+  "width": 2480,
+  "height": 1860,
   "art": "daily",
 
   "buttons": [
@@ -35,6 +35,7 @@
     },
     {
       "apps": ["*"],
+      "layout": "trmnl",
       "lines": [
         { "label": "Next", "command": "find ~/Library/Caches/quiet/next.txt -mmin -5 -exec cat {} +" },
         { "label": "Messages", "command": "find ~/Library/Caches/quiet/messages.txt -mmin -5 -exec cat {} +" }

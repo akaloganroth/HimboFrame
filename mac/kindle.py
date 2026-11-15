@@ -14,6 +14,7 @@ Standard library only; rendering uses Google Chrome in headless mode.
     kindle.py --save out.png  draw to a file, send nothing
     kindle.py --art out.png   draw the art-only fallback picture
 """
+import base64
 import datetime
 import hashlib
 import json
@@ -83,10 +84,19 @@ def pick_art(config, now):
     return now.toordinal() * 24 + now.hour if choice == "hourly" else now.toordinal()
 
 
+def trmnl_picture(config):
+    """The TRMNL screen from the add-on, ready to place in the page, or ''."""
+    try:
+        with urllib.request.urlopen(config["addon"] + "/trmnl.png", timeout=10) as response:
+            return "data:image/png;base64," + base64.b64encode(response.read()).decode()
+    except Exception:
+        return ""
+
+
 def gather(config):
     """Returns (what to draw, {button id: command})."""
     app = front_app()
-    title, lines, wanted = app, [], []
+    title, lines, wanted, picture = app, [], [], ""
     # The first activity that matches wins. An activity matches when its
     # `when` command succeeds, or when the app in front is in its `apps`
     # ("*" means any app).
@@ -106,6 +116,8 @@ def gather(config):
             if text and len(lines) < MAX_LINES:   # empty lines are skipped, so list spares
                 lines.append({"label": line.get("label", ""), "text": text})
         wanted += activity.get("buttons", [])
+        if activity.get("layout") == "trmnl":   # the drawing plus the TRMNL screen, in place of lines
+            picture = trmnl_picture(config)
         break
     if not lines:
         lines = house_lines(config)[:MAX_LINES]
@@ -130,6 +142,7 @@ def gather(config):
         "title": title,
         "lines": lines,
         "buttons": buttons,
+        "picture": picture,
     }
     return data, commands
 

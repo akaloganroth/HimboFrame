@@ -64,6 +64,7 @@ function Quiet:init()
     self.folder = DataStorage:getDataDir() .. "/quiet"
     lfs.mkdir(self.folder)
     self.refresh_task = function() self:fetch() end
+    if self:sleepScreenOn() then self:hideSleepBanner() end
     self.ui.menu:registerToMainMenu(self)
 end
 
@@ -82,6 +83,14 @@ function Quiet:addToMainMenu(menu_items)
     }
 end
 
+--- KOReader prints "Sleeping" across the sleep screen unless told not to.
+function Quiet:hideSleepBanner()
+    if G_reader_settings:readSetting("screensaver_show_message") ~= false then
+        G_reader_settings:saveSetting("quiet_previous_show_message", G_reader_settings:readSetting("screensaver_show_message"))
+        G_reader_settings:saveSetting("screensaver_show_message", false)
+    end
+end
+
 function Quiet:sleepPath()
     return self.folder .. "/sleep.png"
 end
@@ -97,6 +106,7 @@ function Quiet:toggleSleepScreen()
     if self:sleepScreenOn() then
         G_reader_settings:saveSetting("screensaver_type", G_reader_settings:readSetting("quiet_previous_screensaver_type") or "disable")
         G_reader_settings:saveSetting("screensaver_document_cover", G_reader_settings:readSetting("quiet_previous_screensaver_cover"))
+        G_reader_settings:saveSetting("screensaver_show_message", G_reader_settings:readSetting("quiet_previous_show_message"))
     else
         G_reader_settings:saveSetting("quiet_previous_screensaver_type", G_reader_settings:readSetting("screensaver_type"))
         G_reader_settings:saveSetting("quiet_previous_screensaver_cover", G_reader_settings:readSetting("screensaver_document_cover"))
@@ -104,6 +114,7 @@ function Quiet:toggleSleepScreen()
         G_reader_settings:saveSetting("screensaver_document_cover", self:sleepPath())
         -- TRMNL pictures are wide; let KOReader turn them to fill the screen.
         G_reader_settings:saveSetting("screensaver_rotate_auto_for_best_fit", true)
+        self:hideSleepBanner()
         if not lfs.attributes(self:sleepPath()) then
             UIManager:show(InfoMessage:new { text = _("No TRMNL picture saved yet. Start Quiet Screens once and it will be fetched."), timeout = 4 })
         end

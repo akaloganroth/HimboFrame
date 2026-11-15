@@ -51,8 +51,11 @@ FALLBACK = os.path.join(ROOT, "art", "ink.png")
 FRESH_SECONDS = 120          # a Mac picture older than this means the Mac is asleep
 MAX_PUSH_BYTES = 5 * 1024 * 1024
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
-TRMNL_API = os.environ.get("QUIET_TRMNL_API", "https://trmnl.com/api/display/current")
-_trmnl = {"at": 0.0, "data": None}
+# /api/display hands out the next screen in the TRMNL playlist each time it is
+# asked, the way a real device gets them. Adding /current only repeats what the
+# physical device last showed.
+TRMNL_API = os.environ.get("QUIET_TRMNL_API", "https://trmnl.com/api/display")
+_trmnl = {"at": 0.0, "data": None, "every": 240}
 
 
 def options():
@@ -91,16 +94,23 @@ def trmnl_fetch(url, headers=None):
 
 
 def trmnl_screen():
-    """The screen the TRMNL device is showing now, as {"filename": ...}, or
-    None. Checked every four minutes. The picture is copied here, because
-    TRMNL's own link to it stops working after five minutes."""
+    """The TRMNL screen to show, as {"filename": ...}, or None.
+
+    By default this steps through the playlist, asking for the next screen as
+    often as TRMNL says to. With trmnl_advance off it mirrors the physical
+    device instead. The picture is copied here, because TRMNL's own link to it
+    stops working after five minutes."""
     key = (options().get("trmnl_api_key") or "").strip()
     if not key:
         return None
-    if time.time() - _trmnl["at"] > 240:
+    advance = options().get("trmnl_advance", True)
+    if time.time() - _trmnl["at"] > _trmnl["every"]:
         _trmnl["at"] = time.time()
         try:
-            data = json.loads(trmnl_fetch(TRMNL_API, {"access-token": key}))
+            data = json.loads(trmnl_fetch(TRMNL_API + ("" if advance else "/current"), {"access-token": key}))
+            # When stepping through the playlist, wait as long as TRMNL asks
+            # (never less than four minutes); a mirror just checks back.
+            _trmnl["every"] = max(240, int(data.get("refresh_rate") or 900)) if advance else 240
             if not data.get("image_url"):   # TRMNL answered, but not with a screen
                 raise ValueError(json.dumps(data)[:200])
             name = data.get("filename") or hashlib.sha1(data["image_url"].encode()).hexdigest()[:16]
@@ -119,6 +129,7 @@ def trmnl_screen():
         except Exception as error:
             print("trmnl failed:", error, flush=True)
             _trmnl["data"] = None
+            _trmnl["every"] = 240
     return _trmnl["data"]
 
 

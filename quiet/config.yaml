@@ -1,5 +1,5 @@
 name: Quiet Screens
-version: "0.3.2"
+version: "0.3.3"
 slug: quiet
 description: Home screens that look like art until you need them.
 arch:
@@ -33,6 +33,9 @@ options:
   # E-ink screen (optional). trmnl_api_key is your TRMNL device's API key, used
   # to mirror its current screen. kindle_token, if set, must be sent by the Mac.
   trmnl_api_key: ""
+  # On: step through the TRMNL playlist like a device does. Off: only mirror
+  # what the physical TRMNL device last showed.
+  trmnl_advance: true
   kindle_token: ""
 schema:
   lines:
@@ -40,4 +43,5 @@ schema:
       template: str
   alert: str?
   trmnl_api_key: password?
+  trmnl_advance: bool?
   kindle_token: password?

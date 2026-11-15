@@ -12,15 +12,23 @@
   /* Held sideways: drawing on the left, words on the right. */
   @media (orientation: landscape) {
     #page { display: flex; align-items: center; }
-    svg.art, .withbuttons svg.art { width: 44%; height: 70vh; flex: none; }
+    svg.art, .withbuttons svg.art, .withpicture svg.art { width: 44%; height: 70vh; flex: none; }
     #info { flex: 1; margin: 0 0 8vh 5vw; min-width: 0; }
     .artonly svg.art { width: 100%; height: 86vh; }
+    /* With the TRMNL screen, give the picture most of the width. */
+    .withpicture svg.art { width: 30%; }
+    .withpicture #info { margin-left: 4vw; }
   }
   svg.art.on { display: block; }
   svg.art * { fill: none; stroke: #000; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
   .artonly svg.art { height: 86vh; }
   .artonly #info { display: none; }
   .withbuttons svg.art { height: 33vh; }
+  /* The art-and-TRMNL layout: a smaller drawing, then the TRMNL screen. */
+  #picture { display: none; width: 100%; margin-top: 2.2vh; image-rendering: pixelated; border: 3px solid #000; box-sizing: border-box; }
+  .withpicture #picture { display: block; }
+  .withpicture #lines { display: none; }
+  .withpicture svg.art { height: 19vh; }
   /* Buttons are placed by the numbers the Mac script sends, so the Kindle
      knows exactly where each one is. */
   .btn { position: absolute; box-sizing: border-box; border: 5px solid #000; border-radius: 2vmin;
@@ -116,6 +124,7 @@
     <div id="title"></div>
     <hr>
     <ul id="lines"></ul>
+    <img id="picture" alt="">
   </div>
 </div>
 <script>
@@ -134,8 +143,13 @@ var DATA = /*DATA*/{"art": 0, "date": "Saturday, November 14", "title": "Sample"
     var text = document.createElement('span'); text.className = 'text'; text.textContent = lines[i].text || '';
     li.appendChild(label); li.appendChild(text); ul.appendChild(li);
   }
+  var page = document.getElementById('page');
+  if (DATA.picture) {
+    document.getElementById('picture').src = DATA.picture;
+    page.className += ' withpicture';
+  }
   var buttons = DATA.buttons || [];
-  if (buttons.length) { document.getElementById('page').className = 'withbuttons'; }
+  if (buttons.length) { page.className += ' withbuttons'; }
   for (var b = 0; b < buttons.length; b++) {
     var div = document.createElement('div');
     div.className = 'btn';
